@@ -99,7 +99,7 @@ def depthFirstSearch(problem):
         current_state = frontier.pop()
 
         if current_state[0] in roads:
-            road = roads[current_state[0]]
+            road = roads[current_state[0]][:]
         else:
             road = []
 
@@ -116,7 +116,7 @@ def depthFirstSearch(problem):
             if not frontier.list.__contains__(state) and not explored.__contains__(state[0]):
 
                 if current_state[0] in roads:
-                    road = roads[current_state[0]]
+                    road = roads[current_state[0]][:]
                 else:
                     road = []
 
