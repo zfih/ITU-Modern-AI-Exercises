@@ -41,6 +41,14 @@ import util
 import time
 import search
 
+class MySuperAgent(Agent):
+
+    def getAction(self, state):
+        if Directions.SOUTH in state.getLegalPacmanActions():
+            return Directions.SOUTH
+        else:
+            return Directions.WEST
+
 class GoWestAgent(Agent):
     "An agent that goes West until it can't."
 
