@@ -19,6 +19,7 @@ Pacman agents (in searchAgents.py).
 
 import util
 
+
 class SearchProblem:
     """
     This class outlines the structure of a search problem, but doesn't implement
@@ -70,7 +71,8 @@ def tinyMazeSearch(problem):
     from game import Directions
     s = Directions.SOUTH
     w = Directions.WEST
-    return  [s, s, w, s, w, w, s, w]
+    return [s, s, w, s, w, w, s, w]
+
 
 def depthFirstSearch(problem):
     """
@@ -89,39 +91,53 @@ def depthFirstSearch(problem):
     "*** YOUR CODE HERE ***"
     frontier = util.Stack()
     explored = []
-    road = util.Stack()
-    frontier.push(problem.getStartState())
+    roads = {(-1, -1): []}
+
+    frontier.push([problem.getStartState(), 'Stop', 0])
 
     while not frontier.isEmpty():
         current_state = frontier.pop()
-        print "Current state is ", current_state
-        print "Successors are: ", problem.getSuccessors(current_state)
 
-        if problem.isGoalState(current_state):
-            print road.list
-            return road.list
+        if current_state[0] in roads:
+            road = roads[current_state[0]]
+        else:
+            road = []
 
-        if not road.isEmpty():
-            road.pop()
+        print "======================================================="
+        print "Current state is", current_state
+        print "Successors are:", problem.getSuccessors(current_state[0])
+        print "Road to current state is:", road
+        print "Current state is goal?", problem.isGoalState(current_state[0])
 
-        explored.append(current_state)
-        for state in problem.getSuccessors(current_state):
-            if not explored.__contains__(state[0]):
-                frontier.push(state[0])
-                road.push(state[1])
+        if problem.isGoalState(current_state[0]):
+            return roads[current_state[0]]
 
+        for state in problem.getSuccessors(current_state[0]):
+            if not frontier.list.__contains__(state) and not explored.__contains__(state[0]):
 
+                if current_state[0] in roads:
+                    road = roads[current_state[0]]
+                else:
+                    road = []
 
+                print "Adding state", state, "to frontier"
+                frontier.push(state)
+                road.append(state[1])
+                roads[state[0]] = road[:]
+
+        explored.append(current_state[0])
 
 def breadthFirstSearch(problem):
     """Search the shallowest nodes in the search tree first."""
     "*** YOUR CODE HERE ***"
     util.raiseNotDefined()
 
+
 def uniformCostSearch(problem):
     """Search the node of least total cost first."""
     "*** YOUR CODE HERE ***"
     util.raiseNotDefined()
+
 
 def nullHeuristic(state, problem=None):
     """
@@ -129,6 +145,7 @@ def nullHeuristic(state, problem=None):
     goal in the provided SearchProblem.  This heuristic is trivial.
     """
     return 0
+
 
 def aStarSearch(problem, heuristic=nullHeuristic):
     """Search the node that has the lowest combined cost and heuristic first."""
