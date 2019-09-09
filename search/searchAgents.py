@@ -173,6 +173,8 @@ class BTAgent(Agent):
 
         if len(BTAgent.possibleActions) > 3:
             return random.choice(BTAgent.possibleActions)
+        elif len(BTAgent.possibleActions) < 1:
+            return 'Stop'
         for action in BTAgent.possibleActions:
             if action == 'Stop':
                 if len(BTAgent.possibleActions) < 2:
