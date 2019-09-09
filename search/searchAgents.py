@@ -37,11 +37,13 @@ Good luck and happy searching!
 from game import Directions
 from game import Agent
 from game import Actions
+import numpy as np
+import GA_util
+
 import random
 import util
 import time
 import search
-
 
 class MySuperAgent(Agent):
 
@@ -50,7 +52,6 @@ class MySuperAgent(Agent):
             return Directions.SOUTH
         else:
             return Directions.WEST
-
 
 class GoWestAgent(Agent):
     "An agent that goes West until it can't."
@@ -61,7 +62,6 @@ class GoWestAgent(Agent):
             return Directions.WEST
         else:
             return Directions.STOP
-
 
 class BTNode:
 
@@ -180,6 +180,46 @@ class BTAgent(Agent):
                 continue
             return action
 
+
+class GAAgent(Agent):
+    def __init__(self):
+        self.legal_composit = ["SEQ", "SEL"]
+        self.legal_leaf = [
+            "Go.North",
+            "Go.East",
+            "Go.South",
+            "Go.West",
+            "Go.Random",
+            "GoNot.North",
+            "GoNot.East",
+            "GoNot.South",
+            "GoNot.West",
+            "Valid.North",
+            "Valid.East",
+            "Valid.South",
+            "Valid.West",
+            "Danger.North",
+            "Danger.East",
+            "Danger.South",
+            "Danger.West",
+        ]
+        self.legal_decorator = ["Invert"]
+        self.legal_nodes = self.legal_composit + self.legal_leaf + self.legal_decorator
+
+        self.genome = ["SEL",
+            ["SEQ", "Valid.North", "Danger.North", "GoNot.North"],
+            ["SEQ", "Valid.East", "Danger.East", "GoNot.East"],
+            ["SEQ", "Valid.South", "Danger.South", "GoNot.South"],
+            ["SEQ", "Valid.West", "Danger.West", "GoNot.West"],
+            "Go.Random"]
+
+        self.tree = GA_util.parse_node(self.genome, None)
+
+    def getAction(self, state):
+        action = self.tree(state)
+        if action not in state.getLegalPacmanActions():
+            print "Illegal action!!"
+        return action
 
 #######################################################
 # This portion is written for you, but will only work #
