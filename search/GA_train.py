@@ -27,11 +27,17 @@ class EvolvePacManBT():
 
     def produce_next_generation(self, parents):
         """ YOUR CODE HERE!"""
+        raise NotImplementedError
+
     def evaluate_population(self):
         """ Evaluate the fitness, and sort the population accordingly."""
         """ YOUR CODE HERE!"""
+        raise NotImplementedError
+
     def select_parents(self, num_parents):
         """ YOUR CODE HERE!"""
+        raise NotImplementedError
+
     def run(self, num_generations=10):
         display_args = copy.deepcopy(self.args)
         display_args['display'] = self.display_graphics

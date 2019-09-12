@@ -1,4 +1,5 @@
 import numpy as np
+import random
 
 
 opposites = {
@@ -21,7 +22,14 @@ class Sequence:
 
     def __call__(self, state):
         """ YOUR CODE HERE!"""
-        raise NotImplementedError
+
+        print "SEQUEEEEENCE"
+
+        for node in self.children:
+            result = node.__call__(state)
+            if not result:
+                return False
+        return result
 
 
 class Selector:
@@ -36,7 +44,14 @@ class Selector:
 
     def __call__(self, state):
         """ YOUR CODE HERE!"""
-        raise NotImplementedError
+
+        print "SELECTOOOOOR"
+
+        for node in self.children:
+            result = node.__call__(state)
+            if result:
+                return result
+        return False
 
 
 class CheckValid:
@@ -47,7 +62,12 @@ class CheckValid:
 
     def __call__(self, state):
         """ YOUR CODE HERE!"""
-        raise NotImplementedError
+
+        print "I'm Valid!"
+
+        if self.direction in state.getLegalActions():
+            return True
+        return False
 
 
 class CheckDanger:
@@ -58,10 +78,34 @@ class CheckDanger:
 
     def __call__(self, state):
         """ YOUR CODE HERE!"""
-        raise NotImplementedError
+        return self.is_dangerous(state)
 
     def is_dangerous(self, state):
         """ YOUR CODE HERE!"""
+
+        print "Is there danger"
+
+        ghostPos = state.getGhostPositions()
+        nextState = state.generatePacmanSuccessor(self.direction)
+
+        print ghostPos
+        print
+        print nextState.getPacmanPosition()
+
+        if nextState.getPacmanPosition() in ghostPos:
+            return True
+
+        print "No danger in direction: ", self.direction
+
+        newLegalMoves = nextState.getLegalActions()
+        for secondMove in newLegalMoves:
+            nextState2 = nextState.generatePacmanSuccessor(secondMove)
+            if nextState2.getPacmanPosition() in ghostPos:
+                return True
+
+        print "No danger here"
+        return False
+
 
 class ActionGo:
     """ Return <direction> as an action. If <direction> is 'Random' return a random legal action
@@ -71,7 +115,9 @@ class ActionGo:
 
     def __call__(self, state):
         """ YOUR CODE HERE!"""
-        raise NotImplementedError
+        if self.direction == "Random":
+            return random.choice(state.getLegalActions())
+        return self.direction
 
 
 class ActionGoNot:
@@ -82,14 +128,17 @@ class ActionGoNot:
 
     def __call__(self, state):
         """ YOUR CODE HERE!"""
-        raise NotImplementedError
-
+        print "Don't go ", self.direction
+        actions = state.getLegalActions()
+        if self.direction in actions:
+            actions.remove(self.direction)
+        if 'Stop' in actions:
+            actions.remove('Stop')
+        return random.choice(actions)
 
 class DecoratorInvert:
     def __call__(self, arg):
         return not arg
-
-
 
 def parse_node(genome, parent=None):
     if len(genome) == 0:
