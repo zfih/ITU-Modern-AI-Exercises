@@ -1,5 +1,6 @@
 import numpy as np
 import random
+import copy
 
 
 class Gene():
@@ -54,7 +55,7 @@ class GeneticAlgorithm():
         """ Function that selects num_parents from the population."""
         """ YOUR CODE HERE!"""
         self.gene_pool.sort(key=lambda x: x[0])
-        self.parents = self.gene_pool[:num_parents]
+        self.parents = copy.deepcopy(self.gene_pool[:num_parents])
 
     def produce_next_generation(self):
         """ Function that creates the next generation based on parents."""
