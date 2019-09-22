@@ -1,5 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
+import random
 
 from cliff import Cliff
 import QL_utils
@@ -24,7 +25,13 @@ class TabularNStepQLearning:
             With probability eps: return a random action.
         """
         """ YOUR CODE HERE"""
-        raise NotImplementedError
+        a = -1
+
+        maxQ = float("-inf")
+        for i in range(self.num_actions):
+            if self.Qtable[tuple(state)][i] > maxQ:
+                maxQ = self.Qtable[tuple(state)][i]
+                a = i
 
         return a
 
@@ -33,7 +40,9 @@ class TabularNStepQLearning:
         """
         """ YOUR CODE HERE"""
         G = 0
-        raise NotImplementedError
+
+        for i in range(self.n):
+            G += pow(self.gamma, i) * self.exp[i]
 
         return G
 
@@ -42,10 +51,20 @@ class TabularNStepQLearning:
             update the self.Qtable.
         """
         """ YOUR CODE HERE"""
-        raise NotImplementedError
+        self.exp.append([s, a, r, s_, a_, d])
+
+        maxQ = float("-inf")
+        for i in range(self.num_actions):
+            if self.Qtable[tuple(s_)][i] > maxQ:
+                maxQ = self.Qtable[tuple(s_)][i]
+
+        deltaT = r + self.gamma * maxQ - self.Qtable[tuple(s)][a]
+
+        self.Qtable[tuple(s)][a] += self.alpha * deltaT
 
 
 action_dict = {0:"Up", 1:"Right", 2:"Down", 3:"Left"}
+
 
 def run_loop(env, agent, title, max_e=1000, render=False, update=True, plot_frequency=5e3):
     t = 0; i = 0; e = 0
@@ -54,6 +73,8 @@ def run_loop(env, agent, title, max_e=1000, render=False, update=True, plot_freq
     ep_lens = []; rewards = []
     r_sum = 0
     since_last_plot = 0
+
+    print "Loop"
 
     while True:
         i += 1; t += 1; since_last_plot += 1
