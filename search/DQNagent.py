@@ -8,18 +8,68 @@ from game import Agent
 
 import NN_util
 
+## Glorot
+def init_NN_glorot_Tanh(L, uniform=False):
+    """
+    Initializer using the glorot initialization scheme
+    """
+    weights = []
+    biases = []
+    for i in range(len(L) - 1):
+        if uniform:
+            bound = np.sqrt(6.0 / (L[i] + L[i + 1]))
+            weights.append(np.random.uniform(low=-bound, high=bound, size=[L[i], L[i + 1]]))
+            biases.append(np.random.uniform(low=-bound, high=bound, size=[1, L[i + 1]]))
+        else:
+            std = 2.0 / (L[i] + L[i + 1])
+            weights.append(np.random.normal(loc=0.0, scale=std, size=[L[i], L[i + 1]]))
+            biases.append(np.random.normal(loc=0.0, scale=std, size=[1, L[i + 1]]))
+
+    return (weights, biases)
+
+
+## He
+def init_NN_he_ReLU(L, uniform=False):
+    """
+    Initializer using the He initialization scheme
+    """
+    weights = []
+    biases = []
+    for i in range(len(L) - 1):
+        if uniform:
+            bound = np.sqrt(6.0 / L[i])
+            weights.append(np.random.uniform(low=-bound, high=bound, size=[L[i], L[i + 1]]))
+            biases.append(np.random.uniform(low=-bound, high=bound, size=[1, L[i + 1]]))
+        else:
+            std = 2.0 / L[i]
+            weights.append(np.random.normal(loc=0.0, scale=std, size=[L[i], L[i + 1]]))
+            biases.append(np.random.normal(loc=0.0, scale=std, size=[1, L[i + 1]]))
+
+    return (weights, biases)
 
 def init_NN_Glorot(L, activations, uniform=False):
     """
     Initializer using the glorot initialization scheme
     """
-
     weights = []
     biases = []
-    """ YOUR CODE HERE!"""
+    for i in range(len(L) - 1):
+        if activations[i].func_name == 'Tanh':
+            (weigths, biases) = init_NN_glorot_Tanh(L, uniform)
+        elif activations[i].func_name == 'ReLU':
+            for j in range(len(L) - 1):
+                if uniform:
+                    bound = 1.0  # <- replace with proper initialization
+                    bound = np.sqrt(2.0) * np.sqrt(6.0 / (L[j] + L[j + 1]))
+                    weights.append(np.random.uniform(low=-bound, high=bound, size=[L[j], L[j + 1]]))
+                    biases.append(np.random.uniform(low=-bound, high=bound, size=[1, L[j + 1]]))
+                else:
+                    std = 1.0  # <- replace with proper initialization
+                    std = np.sqrt(2.0) * np.sqrt(2.0 / (L[j] + L[j + 1]))
+                    weights.append(np.random.normal(loc=0.0, scale=std, size=[L[j], L[j + 1]]))
+                    biases.append(np.random.normal(loc=0.0, scale=std, size=[1, L[j + 1]]))
 
     return (weights, biases)
-
 
 
 def backward_pass(x, t, y, z, a, NN, activations, loss):
@@ -55,6 +105,35 @@ def backward_pass(x, t, y, z, a, NN, activations, loss):
     t = t.reshape(BS, -1)
 
     """ YOUR CODE HERE!"""
+    d_loss = loss(t, y, derivative=True)
+
+    # Third, let's compute the derivative of the biases and the weights
+    g_w = []  # List to save the gradient of the weights
+    g_b = []  # List to save the gradients of the biases
+
+    delta = np.einsum('bo, bo -> bo', d_loss,
+                      d_a[-1])  # loss shape: (b, o); pre-activation units shape: (b, o) hadamard product
+
+    g_b.append(np.mean(delta, axis=0))
+    g_w.append(np.mean(np.einsum('bo, bi -> bio', delta, z[-2]),
+                       axis=0))  # delta shape: (b, o), activations shape: (b, h)
+
+    for l in range(1, len(NN[0])):
+        d_C_d_z = np.einsum('bo, io -> bi', delta,
+                            NN[0][-l])  # Derivative of the Cost with respect to an activated layer d_C_d_z.
+        #  delta shape: as above; weights shape: (i, o)
+        # Delta: d_C_d_z (element-wise mult) derivative of the activation layers
+        #  delta shape: as above; d_z shape: (b, i)
+        """ YOUR CODE HERE """
+        delta = np.einsum('bo, bo -> bo', d_C_d_z, d_a[-1])
+
+        g_b.append(np.mean(delta, axis=0))
+        g_w.append(np.mean(np.einsum('bo, bi -> bio', delta, z[-l - 2]),
+                           axis=0))  # Derivative of cost with respect to weights in layer l:
+        # delta shape: as above; activations of l-1 shape: (b, i)
+
+    return g_b[::-1], g_w[::-1]
+
 
 class DQNagent(Agent):
     def __init__(self, **args):
