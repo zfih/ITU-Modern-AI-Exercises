@@ -37,6 +37,7 @@ Good luck and happy searching!
 from game import Directions
 from game import Agent
 from game import Actions
+from DQNagent import DQNagent
 import copy
 import numpy as np
 import GA_util
