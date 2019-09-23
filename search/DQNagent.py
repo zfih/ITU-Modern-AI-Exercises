@@ -1,5 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
+import copy
+import textDisplay
 
 from game import Directions
 from game import Agent
