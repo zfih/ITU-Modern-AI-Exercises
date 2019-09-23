@@ -23,8 +23,6 @@ class Sequence:
     def __call__(self, state):
         """ YOUR CODE HERE!"""
 
-        print "SEQUEEEEENCE"
-
         for node in self.children:
             result = node.__call__(state)
             if not result:
@@ -45,8 +43,6 @@ class Selector:
     def __call__(self, state):
         """ YOUR CODE HERE!"""
 
-        print "SELECTOOOOOR"
-
         for node in self.children:
             result = node.__call__(state)
             if result:
@@ -62,8 +58,6 @@ class CheckValid:
 
     def __call__(self, state):
         """ YOUR CODE HERE!"""
-
-        print "I'm Valid!"
 
         if self.direction in state.getLegalActions():
             return True
@@ -83,19 +77,11 @@ class CheckDanger:
     def is_dangerous(self, state):
         """ YOUR CODE HERE!"""
 
-        print "Is there danger"
-
         ghostPos = state.getGhostPositions()
         nextState = state.generatePacmanSuccessor(self.direction)
 
-        print ghostPos
-        print
-        print nextState.getPacmanPosition()
-
         if nextState.getPacmanPosition() in ghostPos:
             return True
-
-        print "No danger in direction: ", self.direction
 
         newLegalMoves = nextState.getLegalActions()
         for secondMove in newLegalMoves:
@@ -103,7 +89,6 @@ class CheckDanger:
             if nextState2.getPacmanPosition() in ghostPos:
                 return True
 
-        print "No danger here"
         return False
 
 
@@ -128,7 +113,6 @@ class ActionGoNot:
 
     def __call__(self, state):
         """ YOUR CODE HERE!"""
-        print "Don't go ", self.direction
         actions = state.getLegalActions()
         if self.direction in actions:
             actions.remove(self.direction)

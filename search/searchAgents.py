@@ -209,15 +209,17 @@ class GAAgent(Agent):
         self.legal_decorator = ["Invert"]
         self.legal_nodes = self.legal_composit + self.legal_leaf + self.legal_decorator
 
-        self.genome = ["SEL",
-            ["SEQ", "Valid.North", "Danger.North", "GoNot.North"],
-            ["SEQ", "Valid.East", "Danger.East", "GoNot.East"],
-            ["SEQ", "Valid.South", "Danger.South", "GoNot.South"],
-            ["SEQ", "Valid.West", "Danger.West", "GoNot.West"],
-            "Go.Random"]
+        #self.genome = ["SEL",
+        #    ["SEQ", "Valid.North", "Danger.North", "GoNot.North"],
+        #    ["SEQ", "Valid.East", "Danger.East", "GoNot.East"],
+        #    ["SEQ", "Valid.South", "Danger.South", "GoNot.South"],
+        #    ["SEQ", "Valid.West", "Danger.West", "GoNot.West"],
+        #    "Go.Random"]
 
-        #if genome is None:
-        #    self.genome = ["SEL", "Go.Stop"]
+        if genome is None:
+            self.genome = ["SEL", "Go.Stop"]
+        else:
+            self.genome = genome
 
         self.tree = GA_util.parse_node(self.genome, None)
 
@@ -240,6 +242,10 @@ class GAAgent(Agent):
 
     def mutate(self):
         """ YOUR CODE HERE! """
+        if self.genome is ["SEL", "Go.Stop"]:
+            self.genome = [random.choice(self.legal_composit), random.choice(self.legal_leaf)]
+        return GAAgent(genome=self.genome)
+
 
 
     def getAction(self, state):

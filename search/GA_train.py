@@ -6,6 +6,7 @@ import textDisplay
 from pacman import *
 from searchAgents import GAAgent
 
+
 class EvolvePacManBT():
     def __init__(self, args, pop_size, num_parents, numGames=5):
         args['numGames'] = numGames
@@ -27,16 +28,37 @@ class EvolvePacManBT():
 
     def produce_next_generation(self, parents):
         """ YOUR CODE HERE!"""
-        raise NotImplementedError
+        nextGen = []
+        for i in range(pop_size):
+            nextGen.append(random.choice(parents).mutate())
+        self.gene_pool = nextGen
 
     def evaluate_population(self):
         """ Evaluate the fitness, and sort the population accordingly."""
         """ YOUR CODE HERE!"""
-        raise NotImplementedError
+
+        fitness_dict = {}
+        sorted_fitness = []
+        max_fitness = -10000000
+
+        for i in range(self.pop_size):
+            self.args['pacman'] = self.gene_pool[i]
+            games_output = runGames(**self.args)
+            fitness_score = max([game.state.getScore() for game in games_output])
+            fitness_dict[i] = [fitness_score]
+            max_fitness = max_fitness if max_fitness > fitness_score else fitness_score
+
+        sorted_fitness = sorted(fitness_dict, key=fitness_dict.get)
+        sorted_fitness.reverse()
+
+        self.gene_pool = [self.gene_pool[g] for g in sorted_fitness]
+        return max_fitness
+
 
     def select_parents(self, num_parents):
         """ YOUR CODE HERE!"""
-        raise NotImplementedError
+        self.gene_pool.sort()  # TODO: Sort smart
+        return copy.deepcopy(self.gene_pool[:num_parents])
 
     def run(self, num_generations=10):
         display_args = copy.deepcopy(self.args)
@@ -49,7 +71,6 @@ class EvolvePacManBT():
             self.gene_pool = parents
             self.produce_next_generation(parents)
 
-
             # TODO: Print some summaries
             if i % 10 == 0 and i>0:
                 print("############################################################")
@@ -59,10 +80,11 @@ class EvolvePacManBT():
                 display_args['pacman'] = self.gene_pool[0]
                 print('best genome!')
                 self.gene_pool[0].print_genome()
-                runGames(**display_args)
+                self.games_output = runGames(**display_args)
                 print("############################################################")
                 print("############################################################")
                 print("############################################################")
+
 
         print('best genome!')
         self.gene_pool[0].print_genome()
