@@ -55,7 +55,7 @@ class Net(nn.Module):
             
             [You will define the activation functions in self.forward below]
         """
-        fc1_units = 1
+        fc1_units = 500
         self.fc1 = nn.Linear(N_STATES, fc1_units)
         self.out = nn.Linear(fc1_units, N_ACTIONS)
 
@@ -191,7 +191,7 @@ reward_shaping = False
 print('\nCollecting experience...')
 episode_rewards = []
 training_begins = None
-should_render = False
+should_render = True
 i_episode = 0
 while True:
     i_episode += 1
@@ -248,9 +248,18 @@ while True:
             break
         s = s_
 
+    if False and i_episode > 1 and i_episode % 100 == 0:
+        plt.clf()
+        plt.plot(range(len(episode_rewards)), episode_rewards, label='Training Begun')
+        plt.plot(range(len(episode_rewards[:training_begins])), episode_rewards[:training_begins],
+                 label='Gathering Exp.')
+        plt.legend()
+        plt.show()
+
 plt.clf()
 plt.plot(range(len(episode_rewards)), episode_rewards, label='Training Begun')
 plt.plot(range(len(episode_rewards[:training_begins])), episode_rewards[:training_begins], label='Gathering Exp.')
 plt.legend()
+plt.show()
 
 print(":)")
