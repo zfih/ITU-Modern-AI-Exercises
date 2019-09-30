@@ -3,7 +3,6 @@ Code for ITU Modern AI course is based on tutorial by Morvan Zhou
     https://github.com/MorvanZhou/PyTorch-Tutorial
 """
 
-
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -55,14 +54,28 @@ class Net(nn.Module):
             
             [You will define the activation functions in self.forward below]
         """
-        fc1_units = 500
+        fc1_units = 8
+        fc2_units = 12
+        fc3_units = 8
         self.fc1 = nn.Linear(N_STATES, fc1_units)
-        self.out = nn.Linear(fc1_units, N_ACTIONS)
+        self.fc2 = nn.Linear(fc1_units, fc2_units)
+        self.fc3 = nn.Linear(fc2_units, fc3_units)
+        self.out = nn.Linear(fc3_units, N_ACTIONS)
 
-        fc1_init_std = 0.1
+        # fc1_init_std = 0.1
+        # fc2_init_std = 0.2
+        # fc3_init_std = 0.05
         out_init_std = 0.1
 
-        self.fc1.weight.data.normal_(0, fc1_init_std)   # initialization
+        torch.nn.init.xavier_normal_(self.fc1.weight, gain=nn.init.calculate_gain('relu'))
+        torch.nn.init.xavier_normal_(self.fc2.weight, gain=nn.init.calculate_gain('relu'))
+        torch.nn.init.xavier_normal_(self.fc3.weight, gain=nn.init.calculate_gain('relu'))
+        # torch.nn.init.xavier_normal_(self.out.weight, gain=nn.init.calculate_gain('tanh'))
+
+
+        # self.fc1.weight.data.normal_(0, fc1_init_std)   # initialization
+        # self.fc2.weight.data.normal_(0, fc2_init_std)   # initialization
+        # self.fc3.weight.data.normal_(0, fc3_init_std)   # initialization
         self.out.weight.data.normal_(0, out_init_std)   # initialization
 
     def forward(self, x):
@@ -75,10 +88,12 @@ class Net(nn.Module):
             that you have chosen in Net.__init__
         """
         # Hidden layer
-        x = F.relu(self.fc1(x))
+        y = F.relu(self.fc1(x))
+        z = F.relu(self.fc2(y))
+        z_ = F.relu(self.fc3(z))
 
         # Output layer
-        actions_value = self.out(x)
+        actions_value = self.out(z_)
         return actions_value
 
 
@@ -191,7 +206,7 @@ reward_shaping = False
 print('\nCollecting experience...')
 episode_rewards = []
 training_begins = None
-should_render = True
+should_render = False
 i_episode = 0
 while True:
     i_episode += 1
@@ -248,7 +263,7 @@ while True:
             break
         s = s_
 
-    if False and i_episode > 1 and i_episode % 100 == 0:
+    if True and i_episode > 1 and i_episode % 100 == 0:
         plt.clf()
         plt.plot(range(len(episode_rewards)), episode_rewards, label='Training Begun')
         plt.plot(range(len(episode_rewards[:training_begins])), episode_rewards[:training_begins],
