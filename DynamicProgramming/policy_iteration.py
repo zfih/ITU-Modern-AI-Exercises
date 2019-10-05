@@ -1,3 +1,5 @@
+import random
+
 import DP_util
 
 """ Evaluate a random policy."""
@@ -39,17 +41,19 @@ def policy_iteration(theta=0.01, discount_rate=0.5):
 
     done = False
     while not done:
-        """ # 2: Policy Evaluation.
+        delta = 0
 
+        """ # 2: Policy Evaluation.
             Updates the value function V_s, until the change is smaller than theta.
         """
-
-        """ YOUR CODE HERE! """
+        for state in range(len(V_s)):
+            v = V_s[state]
+            action = random.choices(policy[state][0], cum_weights=policy[state][1])
+            # for ...
 
 
         """ #3: Policy improvement
-
-            Update the policy if necessary. If the policy is stable (doesn't change)
+            Updates the policy if necessary. If the policy is stable (doesn't change)
             set done to True.          
         """
         policy_stable = True

@@ -243,7 +243,29 @@ class GAAgent(Agent):
 
     def mutate(self):
         """ YOUR CODE HERE! """
-        if self.genome is ["SEL", "Go.Stop"]:
+        mutate = random.choice([1, 2, 3, 4])
+        if mutate is 1:
+            # Add new leaf
+            composit_ids = []
+            for i in range(len(self.genome)):
+                if self.genome[i] in self.legal_composit:
+                    composit_ids.append(i)
+
+            chosen_composit = random.choice[composit_ids]
+            if type(self.genome[chosen_composit + 1]) == list:
+                self.genome[chosen_composit + 1].append(random.choice(self.legal_leaf))
+            else:
+                self.genome[chosen_composit + 1] = [self.genome[chosen_composit + 1]]
+                self.genome[chosen_composit + 1].append(random.choice(self.legal_leaf))
+
+
+        # if mutate is 2:
+        #     # Add new composite and leaf
+        # if mutate is 3:
+        #     # Change random composite or leaf to another composite or leaf
+        # if mutate is 4:
+        #     # Remove on leaf and composite if empty.
+        if self.genome == ["SEL", "Go.Stop"]:
             self.genome = [random.choice(self.legal_composit), random.choice(self.legal_leaf)]
         return GAAgent(genome=self.genome)
 
