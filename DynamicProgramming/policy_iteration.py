@@ -9,6 +9,8 @@ DP_util.evaluate_policy(random_policy)
 """ Uncomment to visualize a run."""
 DP_util.agent(DP_util.create_random_policy(), verbose=True)
 
+GAMMA = 0.01
+
 
 def policy_iteration(theta=0.01, discount_rate=0.5):
     """"""
@@ -39,6 +41,8 @@ def policy_iteration(theta=0.01, discount_rate=0.5):
     V_s = {i: 0 for i in range(16)}  # Everything zero
     policy = DP_util.create_random_policy()  # Random actions
 
+    print(state_transition_probabilities)
+
     done = False
     while not done:
         delta = 0
@@ -46,10 +50,12 @@ def policy_iteration(theta=0.01, discount_rate=0.5):
         """ # 2: Policy Evaluation.
             Updates the value function V_s, until the change is smaller than theta.
         """
-        for state in range(len(V_s)):
-            v = V_s[state]
-            action = random.choices(policy[state][0], cum_weights=policy[state][1])
-            # for ...
+        while delta < 0.1:
+            for state in range(len(V_s)):
+                v = V_s[state]
+                action = random.choices(policy[state][0], cum_weights=policy[state][1])
+                V_s[state] = state_transition_probabilities[s_to_sprime[state], -1, state, action] * (-1 + GAMMA * V_s[s_to_sprime[state]])
+                delta = max(delta, v - V_s[state])
 
 
         """ #3: Policy improvement
@@ -58,7 +64,8 @@ def policy_iteration(theta=0.01, discount_rate=0.5):
         """
         policy_stable = True
 
-        """ YOUR CODE HERE! """
+        for state in range(len(V_s)):
+            #old_action =
 
         if policy_stable:
             done = True
