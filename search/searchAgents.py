@@ -105,9 +105,13 @@ class BTLeaf(BTNode):
 
 class BTAgent(Agent):
     possibleActions = ['Stop']
+    listOfActions = []
+
+    first = True
 
     def getAction(self, state):
         BTAgent.possibleActions = ['East', 'West', 'North', 'South']
+        self.pickRandom = False
 
         def checkGhost(direction):
             newState = state.generatePacmanSuccessor(direction)
@@ -142,46 +146,97 @@ class BTAgent(Agent):
                 return False
 
         def goRandomDirection():
-            # BTAgent.possibleActions = state.getLegalPacmanActions()
+            self.pickRandom = True
             return True
 
-        ourTree = BTSelector([
-            BTSequence([
-                BTLeaf(checkDirection, 'East'),
-                BTLeaf(checkGhost, 'East'),
-                BTLeaf(goDirection, 'West')
-            ]),
-            BTSequence([
-                BTLeaf(checkDirection, 'West'),
-                BTLeaf(checkGhost, 'West'),
-                BTLeaf(goDirection, 'East')
-            ]),
-            BTSequence([
-                BTLeaf(checkDirection, 'North'),
-                BTLeaf(checkGhost, 'North'),
-                BTLeaf(goDirection, 'South')
-            ]),
-            BTSequence([
-                BTLeaf(checkDirection, 'South'),
-                BTLeaf(checkGhost, 'South'),
-                BTLeaf(goDirection, 'North')
-            ]),
-            BTLeaf(goRandomDirection)
-        ])
+        def AStarToCapsules():
+            if len(state.getCapsules()) == 0:
+                return False
+            goal_state = random.choice(state.getCapsules())
+            frontier = util.PriorityQueue()
+            frontier.update(state.getPacmanPosition(), 0)
 
-        ourTree.evaluate()
+            came_from = {}
+            cost_so_far = {}
+            came_from[state.getPacmanPosition()] = (None, 'Stop')
+            cost_so_far[state.getPacmanPosition()] = 0
 
-        print BTAgent.possibleActions
+            states = {}
+            states[state.getPacmanPosition()] = state
 
-        if len(BTAgent.possibleActions) > 3:
-            return random.choice(BTAgent.possibleActions)
-        elif len(BTAgent.possibleActions) < 1:
+            while not frontier.isEmpty():
+                current_pos = frontier.pop()
+
+                if current_pos == goal_state:
+                    road = []
+                    prev_pos, act = came_from[current_pos]
+                    while prev_pos is not None:
+                        print act
+                        road.append(act)
+                        prev_pos, act = came_from[prev_pos]
+                    BTAgent.listOfActions = road
+                    return True
+
+                current_state = states[current_pos]
+
+                for act in current_state.getLegalActions():
+                    next_state = current_state.generatePacmanSuccessor(act)
+                    states[next_state.getPacmanPosition()] = next_state
+                    new_cost = cost_so_far[current_state.getPacmanPosition()] + 1
+                    if next_state.getPacmanPosition() not in cost_so_far or new_cost < cost_so_far[next_state.getPacmanPosition()]:
+                        cost_so_far[next_state.getPacmanPosition()] = new_cost
+                        priority = new_cost + manhattenDistance(goal_state, next_state.getPacmanPosition())
+                        frontier.update(next_state.getPacmanPosition(), priority)
+                        came_from[next_state.getPacmanPosition()] = (current_pos, act)
+            return False
+
+        def manhattenDistance(pos1, pos2):
+            return abs(pos1[0] - pos2[0]) + abs(pos1[1] - pos2[1])
+
+        if self.first:
+            print "Capsules"
+            print state.getCapsules()
+            print "==================================================="
+            print "Food"
+            print state.getFood()
+            self.first = False
+
+        # ourTree = BTSelector([
+        #     BTSequence([
+        #         BTLeaf(checkDirection, 'East'),
+        #         BTLeaf(checkGhost, 'East'),
+        #         BTLeaf(goDirection, 'West')
+        #     ]),
+        #     BTSequence([
+        #         BTLeaf(checkDirection, 'West'),
+        #         BTLeaf(checkGhost, 'West'),
+        #         BTLeaf(goDirection, 'East')
+        #     ]),
+        #     BTSequence([
+        #         BTLeaf(checkDirection, 'North'),
+        #         BTLeaf(checkGhost, 'North'),
+        #         BTLeaf(goDirection, 'South')
+        #     ]),
+        #     BTSequence([
+        #         BTLeaf(checkDirection, 'South'),
+        #         BTLeaf(checkGhost, 'South'),
+        #         BTLeaf(goDirection, 'North')
+        #     ]),
+        #     BTLeaf(goRandomDirection)
+        # ])
+
+
+        if len(BTAgent.listOfActions) == 0:
+            ourTree2 = BTSequence([
+                BTLeaf(AStarToCapsules)
+            ])
+
+            print BTAgent.listOfActions
+
+            ourTree2.evaluate()
             return 'Stop'
-        for action in BTAgent.possibleActions:
-            if action == 'Stop':
-                if len(BTAgent.possibleActions) < 2:
-                    return 'Stop'
-                continue
+        else:
+            action = BTAgent.listOfActions.pop()
             return action
 
 
