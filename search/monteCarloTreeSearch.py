@@ -6,18 +6,21 @@ from game import Agent
 
 class MCTSagent(Agent):
     def __init__(self):
-        self.explored = {}  # Dictionary for storing the explored states
+        self.explored = []  # Dictionary for storing the explored states
         self.n = 10  # Depth of search  # TODO: Play with this once the code runs
         self.c = 1  # Exploration parameter # TODO: Play with this once the code runs
+        self.tree = []
 
     def getAction(self, state):
         """ Main function for the Monte Carlo Tree Search. For as long as there
             are resources, run the main loop. Once the resources runs out, take the
             action that looks the best.
         """
-        self.explored = {}
+        self.explored = []
 
-        root = """ YOUR CODE HERE"""  # TODO: How will you encode the nodes and states?
+        # root is id 0, node = [parent, child, value, nr of visits]
+        root = [None, None, 0, 0]  # TODO: How will you encode the nodes and states?
+        self.tree[0] = root
 
         for _ in range(self.n):  # while resources are left (time, computational power, etc)
             leaf_list = self.traverse(root)
@@ -43,8 +46,7 @@ class MCTSagent(Agent):
             """ Determines whether a state has been explored before.
                 Returns True if the state has been explored, false otherwise
             """
-            """ YOUR CODE HERE!"""
-            raise NotImplementedError
+            return self.explored.__contains__(state)
 
         def best_UCT(state):
             """ Given a state, return the best action according to the UCT criterion."""
