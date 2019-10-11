@@ -47,13 +47,6 @@ import util
 import time
 import search
 
-class MySuperAgent(Agent):
-
-    def getAction(self, state):
-        if Directions.SOUTH in state.getLegalPacmanActions():
-            return Directions.SOUTH
-        else:
-            return Directions.WEST
 
 class GoWestAgent(Agent):
     "An agent that goes West until it can't."
@@ -150,6 +143,8 @@ class BTAgent(Agent):
             return True
 
         def AStarToCapsules():
+            # Modified version from search.py, used to test for finding capsules
+
             if len(state.getCapsules()) == 0:
                 return False
             goal_state = random.choice(state.getCapsules())
@@ -185,13 +180,11 @@ class BTAgent(Agent):
                     new_cost = cost_so_far[current_state.getPacmanPosition()] + 1
                     if next_state.getPacmanPosition() not in cost_so_far or new_cost < cost_so_far[next_state.getPacmanPosition()]:
                         cost_so_far[next_state.getPacmanPosition()] = new_cost
-                        priority = new_cost + manhattenDistance(goal_state, next_state.getPacmanPosition())
+                        priority = new_cost + util.manhattanDistance(goal_state, next_state.getPacmanPosition())
                         frontier.update(next_state.getPacmanPosition(), priority)
                         came_from[next_state.getPacmanPosition()] = (current_pos, act)
             return False
 
-        def manhattenDistance(pos1, pos2):
-            return abs(pos1[0] - pos2[0]) + abs(pos1[1] - pos2[1])
 
         if self.first:
             print "Capsules"
@@ -841,3 +834,15 @@ def mazeDistance(point1, point2, gameState):
     assert not walls[x2][y2], 'point2 is a wall: ' + str(point2)
     prob = PositionSearchProblem(gameState, start=point1, goal=point2, warn=False, visualize=False)
     return len(search.bfs(prob))
+
+
+
+class MySuperAgent(Agent):
+    def __init__(self):
+        self.agent = SearchAgent(fn='aStarSearch', heuristic='manhattanHeuristic')
+
+    def registerInitialState(self, state):
+        return self.agent.registerInitialState(state)
+
+    def getAction(self, state):
+        return self.agent.getAction(state)
