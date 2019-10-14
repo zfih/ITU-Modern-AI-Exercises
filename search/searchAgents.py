@@ -58,6 +58,7 @@ class GoWestAgent(Agent):
         else:
             return Directions.STOP
 
+
 class BTNode:
 
     def __init__(self, children):
@@ -96,15 +97,20 @@ class BTLeaf(BTNode):
         return self.function(self.params)
 
 
+class BTDecorator(BTNode):
+    def __init__(self, child, function):
+        self.children = child
+        self.function = function
+        if len(self.children) > 1:
+            self.children = self.children[0]  # force single child
+
+    def evaluate(self):
+        return self.function(self.children[0])
+
+
 class BTAgent(Agent):
-    possibleActions = ['Stop']
-    listOfActions = []
-
-    first = True
-
     def getAction(self, state):
         BTAgent.possibleActions = ['East', 'West', 'North', 'South']
-        self.pickRandom = False
 
         def checkGhost(direction):
             newState = state.generatePacmanSuccessor(direction)
@@ -133,21 +139,17 @@ class BTAgent(Agent):
 
         def goDirection(direction):
             if direction in state.getLegalPacmanActions():
-                BTAgent.possibleActions = [direction]
-                return True
+                return direction
             else:
                 return False
 
         def goRandomDirection():
-            self.pickRandom = True
-            return True
+            return random.choice(state.getLegalActions())
 
-        def AStarToCapsules():
-            # Modified version from search.py, used to test for finding capsules
+        def checkForScaredGhosts(child):
+            return False
 
-            if len(state.getCapsules()) == 0:
-                return False
-            goal_state = random.choice(state.getCapsules())
+        def AStarToGoal(goal):
             frontier = util.PriorityQueue()
             frontier.update(state.getPacmanPosition(), 0)
 
@@ -162,15 +164,14 @@ class BTAgent(Agent):
             while not frontier.isEmpty():
                 current_pos = frontier.pop()
 
-                if current_pos == goal_state:
+                if current_pos == goal:
                     road = []
                     prev_pos, act = came_from[current_pos]
                     while prev_pos is not None:
                         print act
                         road.append(act)
                         prev_pos, act = came_from[prev_pos]
-                    BTAgent.listOfActions = road
-                    return road[0]
+                    return road.pop()
 
                 current_state = states[current_pos]
 
@@ -178,21 +179,66 @@ class BTAgent(Agent):
                     next_state = current_state.generatePacmanSuccessor(act)
                     states[next_state.getPacmanPosition()] = next_state
                     new_cost = cost_so_far[current_state.getPacmanPosition()] + 1
-                    if next_state.getPacmanPosition() not in cost_so_far or new_cost < cost_so_far[next_state.getPacmanPosition()]:
+                    if next_state.getPacmanPosition() not in cost_so_far or new_cost < cost_so_far[
+                        next_state.getPacmanPosition()]:
                         cost_so_far[next_state.getPacmanPosition()] = new_cost
-                        priority = new_cost + util.manhattanDistance(goal_state, next_state.getPacmanPosition())
+                        priority = new_cost + util.manhattanDistance(goal, next_state.getPacmanPosition())
                         frontier.update(next_state.getPacmanPosition(), priority)
                         came_from[next_state.getPacmanPosition()] = (current_pos, act)
             return False
 
+        def AStarToNearestCapsule():
+            # Modified version from search.py, used to test for finding capsules
+            if len(state.getCapsules()) == 0:
+                return False
 
-        if self.first:
-            print "Capsules"
-            print state.getCapsules()
-            print "==================================================="
-            print "Food"
-            print state.getFood()
-            self.first = False
+            goal_state = None
+
+            distance = 1000000000
+            for cap in state.getCapsules():
+                manhattan = util.manhattanDistance(cap, state.getPacmanPosition())
+                if manhattan < distance:
+                    distance = manhattan
+                    goal_state = cap
+
+            if goal_state is None:
+                goal_state = random.choice(state.getCapsules())
+
+            return AStarToGoal(goal_state)
+
+        def AStarToNearestGhost():
+            if len(state.getGhostPositions()) == 0:
+                return False
+
+            goal_state = None
+
+            distance = 1000000000
+            for cap in state.getGhostPositions():
+                manhattan = util.manhattanDistance(cap, state.getPacmanPosition())
+                if manhattan < distance:
+                    distance = manhattan
+                    goal_state = cap
+
+            if goal_state is None:
+                goal_state = random.choice(state.getGhostPositions())
+
+            return AStarToGoal(goal_state)
+
+        def decoratorFunction(child):
+            return False
+
+        # ourTree = BTSelector([
+        #     BTDecorator(BTLeaf(AStarToNearestCapsule), checkForScaredGhosts),
+        #     BTSequence([
+        #         BTLeaf(checkGhost, 'West'),  # check for nearby ghosts
+        #         BTLeaf(goDirection, 'West')  # flee
+        #     ]),
+        #     BTSequence([
+        #         BTLeaf(checkGhost, 'West'),  # any capsules left?
+        #         BTLeaf(AStarToCapsules)  # AStar to nearest
+        #     ]),
+        #     BTLeaf(AStarToCapsules) # BFS to nearest pill
+        # ])
 
         # ourTree = BTSelector([
         #     BTSequence([
@@ -218,19 +264,12 @@ class BTAgent(Agent):
         #     BTLeaf(goRandomDirection)
         # ])
 
+        ourTree = BTLeaf(AStarToNearestCapsule)
 
-        if len(BTAgent.listOfActions) == 0:
-            ourTree2 = BTSequence([
-                BTLeaf(AStarToCapsules)
-            ])
-
-            print BTAgent.listOfActions
-
-            eval_output = ourTree2.evaluate()
-            print eval_output
+        action = ourTree.evaluate()
+        if not action:  # error handling basicly
             return 'Stop'
         else:
-            action = BTAgent.listOfActions.pop()
             return action
 
 
@@ -259,7 +298,7 @@ class GAAgent(Agent):
         self.legal_decorator = ["Invert"]
         self.legal_nodes = self.legal_composit + self.legal_leaf + self.legal_decorator
 
-        #self.genome = ["SEL",
+        # self.genome = ["SEL",
         #    ["SEQ", "Valid.North", "Danger.North", "GoNot.North"],
         #    ["SEQ", "Valid.East", "Danger.East", "GoNot.East"],
         #    ["SEQ", "Valid.South", "Danger.South", "GoNot.South"],
@@ -282,11 +321,11 @@ class GAAgent(Agent):
         def print_help(genome, prefix=''):
             for gene in genome:
                 if isinstance(gene, list):
-                    print_help(gene, prefix+"  ")
+                    print_help(gene, prefix + "  ")
                 elif gene in self.legal_composit:
                     print prefix, gene
                 else:
-                    print prefix+'  ', gene
+                    print prefix + '  ', gene
 
         print_help(self.genome)
 
@@ -307,7 +346,6 @@ class GAAgent(Agent):
                 self.genome[chosen_composit + 1] = [self.genome[chosen_composit + 1]]
                 self.genome[chosen_composit + 1].append(random.choice(self.legal_leaf))
 
-
         # if mutate is 2:
         #     # Add new composite and leaf
         # if mutate is 3:
@@ -318,14 +356,13 @@ class GAAgent(Agent):
             self.genome = [random.choice(self.legal_composit), random.choice(self.legal_leaf)]
         return GAAgent(genome=self.genome)
 
-
-
     def getAction(self, state):
         action = self.tree(state)
         if action not in state.getLegalPacmanActions():
             # print "Illegal action!!"
             action = 'Stop'
         return action
+
 
 #######################################################
 # This portion is written for you, but will only work #
@@ -835,7 +872,6 @@ def mazeDistance(point1, point2, gameState):
     assert not walls[x2][y2], 'point2 is a wall: ' + str(point2)
     prob = PositionSearchProblem(gameState, start=point1, goal=point2, warn=False, visualize=False)
     return len(search.bfs(prob))
-
 
 
 class MySuperAgent(Agent):
