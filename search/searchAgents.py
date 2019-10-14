@@ -150,6 +150,8 @@ class BTAgent(Agent):
             return False
 
         def AStarToGoal(goal):
+            # Modified version from search.py
+
             frontier = util.PriorityQueue()
             frontier.update(state.getPacmanPosition(), 0)
 
@@ -171,7 +173,7 @@ class BTAgent(Agent):
                         print act
                         road.append(act)
                         prev_pos, act = came_from[prev_pos]
-                    return road.pop()
+                    return road.pop() # Optimize loop away
 
                 current_state = states[current_pos]
 
@@ -188,7 +190,6 @@ class BTAgent(Agent):
             return False
 
         def AStarToNearestCapsule():
-            # Modified version from search.py, used to test for finding capsules
             if len(state.getCapsules()) == 0:
                 return False
 
