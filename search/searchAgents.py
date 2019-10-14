@@ -71,7 +71,7 @@ class BTSequence(BTNode):
             result = node.evaluate()
             if not result:
                 return False
-        return True
+        return result
 
 
 class BTSelector(BTNode):
@@ -80,7 +80,7 @@ class BTSelector(BTNode):
         for node in self.children:
             result = node.evaluate()
             if result:
-                return True
+                return result
         return False
 
 
@@ -170,7 +170,7 @@ class BTAgent(Agent):
                         road.append(act)
                         prev_pos, act = came_from[prev_pos]
                     BTAgent.listOfActions = road
-                    return True
+                    return road[0]
 
                 current_state = states[current_pos]
 
@@ -226,7 +226,8 @@ class BTAgent(Agent):
 
             print BTAgent.listOfActions
 
-            ourTree2.evaluate()
+            eval_output = ourTree2.evaluate()
+            print eval_output
             return 'Stop'
         else:
             action = BTAgent.listOfActions.pop()
