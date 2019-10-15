@@ -101,11 +101,30 @@ class BTDecorator(BTNode):
     def __init__(self, child, function):
         self.children = child
         self.function = function
-        if len(self.children) > 1:
-            self.children = self.children[0]  # force single child
 
     def evaluate(self):
-        return self.function(self.children[0])
+        return self.function(self.children)
+
+
+def fixedGhostPos(ghost):
+    pos = ghost.getPosition()
+    dir = ghost.getDirection()
+
+    if pos[0] % 1.0 != 0.5 and pos[1] % 1.0 != 0.5:
+        return pos
+
+    if dir == "North":
+        pos = (pos[0], pos[1]+0.5)
+    elif dir == "South":
+        pos = (pos[0], pos[1]-0.5)
+    elif dir == "West":
+        pos = (pos[0]-0.5, pos[1])
+    else:
+        pos = (pos[0]+0.5, pos[1])
+
+    return pos
+
+
 
 
 class BTAgent(Agent):
@@ -147,6 +166,20 @@ class BTAgent(Agent):
             return random.choice(state.getLegalActions())
 
         def checkForScaredGhosts(child):
+            ghosts = state.getGhostStates()
+            killableGhost = False
+
+            for ghost in ghosts:
+                if ghost.scaredTimer is 0:
+                    continue
+                distance = util.manhattanDistance(ghost.getPosition(), state.getPacmanPosition())
+
+                # if distance to ghost is less than the time steps to get to ghost then we can kill it
+                if distance < ghost.scaredTimer:
+                    killableGhost = True
+
+            if killableGhost:
+                return child.evaluate()
             return False
 
         def AStarToGoal(goal):
@@ -170,7 +203,6 @@ class BTAgent(Agent):
                     road = []
                     prev_pos, act = came_from[current_pos]
                     while prev_pos is not None:
-                        print act
                         road.append(act)
                         prev_pos, act = came_from[prev_pos]
                     return road.pop() # Optimize loop away
@@ -207,26 +239,26 @@ class BTAgent(Agent):
 
             return AStarToGoal(goal_state)
 
-        def AStarToNearestGhost():
-            if len(state.getGhostPositions()) == 0:
+        def AStarToNearestScaredGhost():
+            if len(state.getGhostStates()) == 0:
                 return False
 
             goal_state = None
 
             distance = 1000000000
-            for cap in state.getGhostPositions():
-                manhattan = util.manhattanDistance(cap, state.getPacmanPosition())
+            for ghost in state.getGhostStates():
+                pos = fixedGhostPos(ghost)
+                manhattan = util.manhattanDistance(pos, state.getPacmanPosition())
+                if manhattan > ghost.scaredTimer:
+                    continue
                 if manhattan < distance:
                     distance = manhattan
-                    goal_state = cap
+                    goal_state = pos
 
             if goal_state is None:
-                goal_state = random.choice(state.getGhostPositions())
+                goal_state = fixedGhostPos(random.choice(state.getGhostPositions()))
 
             return AStarToGoal(goal_state)
-
-        def decoratorFunction(child):
-            return False
 
         # ourTree = BTSelector([
         #     BTDecorator(BTLeaf(AStarToNearestCapsule), checkForScaredGhosts),
@@ -265,9 +297,14 @@ class BTAgent(Agent):
         #     BTLeaf(goRandomDirection)
         # ])
 
-        ourTree = BTLeaf(AStarToNearestCapsule)
+        ourTree = BTSelector([
+            BTDecorator(BTLeaf(AStarToNearestScaredGhost), checkForScaredGhosts),
+
+            BTLeaf(AStarToNearestCapsule)
+        ])
 
         action = ourTree.evaluate()
+
         if not action:  # error handling basicly
             return 'Stop'
         else:

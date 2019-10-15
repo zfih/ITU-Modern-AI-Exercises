@@ -98,34 +98,23 @@ def depthFirstSearch(problem):
     while not frontier.isEmpty():
         current_state = frontier.pop()
 
-        if current_state[0] in roads:
-            road = roads[current_state[0]][:]
-        else:
-            road = []
-
-        print "======================================================="
-        print "Current state is", current_state
-        print "Successors are:", problem.getSuccessors(current_state[0])
-        print "Road to current state is:", road
-        print "Current state is goal?", problem.isGoalState(current_state[0])
-
         if problem.isGoalState(current_state[0]):
             return roads[current_state[0]]
 
         for state in problem.getSuccessors(current_state[0]):
-            if not frontier.list.__contains__(state) and not explored.__contains__(state[0]):
+            if state not in frontier.list and state[0] not in explored:
 
                 if current_state[0] in roads:
                     road = roads[current_state[0]][:]
                 else:
                     road = []
 
-                print "Adding state", state, "to frontier"
                 frontier.push(state)
                 road.append(state[1])
                 roads[state[0]] = road[:]
 
         explored.append(current_state[0])
+
 
 def breadthFirstSearch(problem):
     """Search the shallowest nodes in the search tree first."""
@@ -150,7 +139,6 @@ def nullHeuristic(state, problem=None):
 def aStarSearch(problem, heuristic=nullHeuristic):
     """Search the node that has the lowest combined cost and heuristic first."""
     "*** YOUR CODE HERE ***"
-    goal_state = problem.goal
     state = problem.getStartState()
 
     frontier = util.PriorityQueue()
@@ -186,6 +174,7 @@ def aStarSearch(problem, heuristic=nullHeuristic):
                 priority = new_cost + heuristic(next_state[0], problem)
                 frontier.update(next_state[0], priority)
                 came_from[next_state[0]] = (current_state, next_state[1])
+
 
 # Abbreviations
 bfs = breadthFirstSearch
