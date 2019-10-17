@@ -93,33 +93,57 @@ def depthFirstSearch(problem):
     explored = []
     roads = {(-1, -1): []}
 
-    frontier.push([problem.getStartState(), 'Stop', 0])
+    frontier.push(problem.getStartState())
 
     while not frontier.isEmpty():
         current_state = frontier.pop()
 
-        if problem.isGoalState(current_state[0]):
-            return roads[current_state[0]]
+        if problem.isGoalState(current_state):
+            return roads[current_state]
 
-        for state in problem.getSuccessors(current_state[0]):
-            if state not in frontier.list and state[0] not in explored:
+        for state in problem.getSuccessors(current_state):
+            if state[0] not in frontier.list and state[0] not in explored:
 
-                if current_state[0] in roads:
-                    road = roads[current_state[0]][:]
+                if current_state in roads:
+                    road = roads[current_state][:]
                 else:
                     road = []
 
-                frontier.push(state)
+                frontier.push(state[0])
                 road.append(state[1])
                 roads[state[0]] = road[:]
 
-        explored.append(current_state[0])
+        explored.append(current_state)
 
 
 def breadthFirstSearch(problem):
     """Search the shallowest nodes in the search tree first."""
     "*** YOUR CODE HERE ***"
-    util.raiseNotDefined()
+    frontier = util.Queue()
+    explored = []
+    roads = {(-1, -1): []}
+
+    frontier.push(problem.getStartState())
+
+    while not frontier.isEmpty():
+        current_state = frontier.pop()
+
+        if problem.isGoalState(current_state):
+            return roads[current_state]
+
+        for state in problem.getSuccessors(current_state):
+            if state[0] not in frontier.list and state[0] not in explored:
+
+                if current_state in roads:
+                    road = roads[current_state][:]
+                else:
+                    road = []
+
+                frontier.push(state[0])
+                road.append(state[1])
+                roads[state[0]] = road[:]
+
+        explored.append(current_state)
 
 
 def uniformCostSearch(problem):
