@@ -114,58 +114,161 @@ def fixedGhostPos(ghost):
         return pos
 
     if dir == "North":
-        pos = (pos[0], pos[1]+0.5)
-    elif dir == "South":
         pos = (pos[0], pos[1]-0.5)
+    elif dir == "South":
+        pos = (pos[0], pos[1]+0.5)
     elif dir == "West":
-        pos = (pos[0]-0.5, pos[1])
-    else:
         pos = (pos[0]+0.5, pos[1])
+    else:
+        pos = (pos[0]-0.5, pos[1])
 
     return pos
 
 
+def checkGhostsNearbyState(state):
+    for act in state.getLegalActions():
+        possibleStates = [state]
+        next_state = state.generatePacmanSuccessor(act)
 
+        for ghostAct in next_state.getLegalActions(1):
+            for ghost2Act in next_state.getLegalActions(2):
+                tmp_state1 = next_state.generateSuccessor(1, ghostAct)
+                if tmp_state1.isLose():
+                    return True
+
+                tmp_state2 = tmp_state1.generateSuccessor(2, ghost2Act)
+                if tmp_state2.isLose():
+                    return True
+
+                possibleStates.append(tmp_state2)
+
+        for check_state in possibleStates:
+            pacmanPos = check_state.getPacmanPosition()
+            ghosts = check_state.getGhostStates()
+
+            for ghost in ghosts:
+                ghostPos = ghost.getPosition()
+                if ghost.scaredTimer < 3 and pacmanPos == ghostPos:
+                    return True
+
+            inner_possibleStates = []
+
+            for inner_act in check_state.getLegalActions():
+                next_next_state = check_state.generatePacmanSuccessor(inner_act)
+
+                for ghostAct in next_next_state.getLegalActions(1):
+                    for ghost2Act in next_next_state.getLegalActions(2):
+                        tmp_state1 = next_next_state.generateSuccessor(1, ghostAct)
+                        if tmp_state1.isLose():
+                            return True
+
+                        tmp_state2 = tmp_state1.generateSuccessor(2, ghost2Act)
+                        if tmp_state2.isLose():
+                            return True
+
+                        inner_possibleStates.append(tmp_state2)
+
+    return False
 
 class BTAgent(Agent):
     def getAction(self, state):
-        BTAgent.possibleActions = ['East', 'West', 'North', 'South']
+        def fleeFromNearbyGhosts():
+            badDirections = ['Stop']
+            ghostNearby = False
 
-        def checkGhost(direction):
-            newState = state.generatePacmanSuccessor(direction)
-            legalActions = newState.getLegalActions()
-            pacmanPos = newState.getPacmanPosition()
-            ghostPosList = newState.getGhostPositions()
-            if pacmanPos in ghostPosList:
-                BTAgent.possibleActions.remove(direction)
-                return True
+            roads = []
 
-            for act in legalActions:
-                newerState = newState.generatePacmanSuccessor(act)
-                newGhostPosList = newerState.getGhostPositions()
-                if newerState.getPacmanPosition() in ghostPosList or newerState.getPacmanPosition() in newGhostPosList:
-                    BTAgent.possibleActions.remove(direction)
-                    return True
+            for act in state.getLegalActions():
+                possibleStates = [state]
+                next_state = state.generatePacmanSuccessor(act)
+                road = [act]
+
+                for ghostAct in next_state.getLegalActions(1):
+                    for ghost2Act in next_state.getLegalActions(2):
+                        tmp_state1 = next_state.generateSuccessor(1, ghostAct)
+                        if tmp_state1.isLose():
+                            ghostNearby = True
+                            badDirections.append(act)
+                            continue
+
+                        tmp_state2 = tmp_state1.generateSuccessor(2, ghost2Act)
+                        if tmp_state2.isLose():
+                            ghostNearby = True
+                            badDirections.append(act)
+
+                        possibleStates.append(tmp_state2)
+
+                for check_state in possibleStates:
+                    for inner_act in check_state.getLegalActions():
+                        next_next_state = check_state.generatePacmanSuccessor(inner_act)
+                        road.append(inner_act)
+                        for ghostAct in next_next_state.getLegalActions(1):
+                            for ghost2Act in next_next_state.getLegalActions(2):
+                                tmp_state1 = next_next_state.generateSuccessor(1, ghostAct)
+                                if tmp_state1.isLose():
+                                    ghostNearby = True
+                                    badDirections.append(act)
+                                    continue
+
+                                tmp_state2 = tmp_state1.generateSuccessor(2, ghost2Act)
+                                if tmp_state2.isLose():
+                                    ghostNearby = True
+                                    badDirections.append(act)
+                                    continue
+                                roads.append(road)
+
+
+            if ghostNearby:
+                random.shuffle(roads)
+                for road in roads:
+                    if road[0] not in badDirections:
+                        return road[0]
 
             return False
 
-        def checkDirection(direction):
-            if direction in state.getLegalActions():
-                return True
-            if direction in BTAgent.possibleActions:
-                BTAgent.possibleActions.remove(direction)
+
+        def checkGhostsNearby():
+            return checkGhostsNearbyState(state)
+
+        def bfsToNearestPill():
+            frontier = util.Queue()
+            explored = []
+            roads = {}
+
+            states = {}
+            states[state.getPacmanPosition()] = state
+
+            frontier.push(state.getPacmanPosition())
+
+            while not frontier.isEmpty():
+                current_pos = frontier.pop()
+                current_state = states[current_pos]
+                explored.append(current_pos)
+
+                if current_state.getFood()[current_pos[0]][current_pos[1]]:
+                    return roads[current_pos][0]
+
+                for act in current_state.getLegalActions():
+                    next_state = current_state.generatePacmanSuccessor(act)
+                    next_pos = next_state.getPacmanPosition()
+                    states[next_pos] = next_state
+
+                    if next_pos not in frontier.list and next_pos not in explored:
+                        if current_pos in roads:
+                            road = roads[current_pos][:]
+                        else:
+                            road = []
+
+                        frontier.push(next_pos)
+                        road.append(act)
+                        roads[next_pos] = road[:]
+
+                        if current_state.hasFood(next_pos[0], next_pos[1]):  # how does duck-typing fail this?
+                            return roads[next_pos][0]
+
             return False
 
-        def goDirection(direction):
-            if direction in state.getLegalPacmanActions():
-                return direction
-            else:
-                return False
-
-        def goRandomDirection():
-            return random.choice(state.getLegalActions())
-
-        def checkForScaredGhosts(child):
+        def checkForScaredGhosts():
             ghosts = state.getGhostStates()
             killableGhost = False
 
@@ -179,7 +282,7 @@ class BTAgent(Agent):
                     killableGhost = True
 
             if killableGhost:
-                return child.evaluate()
+                return True
             return False
 
         def AStarToGoal(goal):
@@ -205,7 +308,7 @@ class BTAgent(Agent):
                     while prev_pos is not None:
                         road.append(act)
                         prev_pos, act = came_from[prev_pos]
-                    return road.pop() # Optimize loop away
+                    return road.pop()  # pop the last element as road is currently reversed.
 
                 current_state = states[current_pos]
 
@@ -221,7 +324,7 @@ class BTAgent(Agent):
                         came_from[next_state.getPacmanPosition()] = (current_pos, act)
             return False
 
-        def AStarToNearestCapsule():
+        def aStarToNearestCapsule():
             if len(state.getCapsules()) == 0:
                 return False
 
@@ -239,15 +342,20 @@ class BTAgent(Agent):
 
             return AStarToGoal(goal_state)
 
-        def AStarToNearestScaredGhost():
+        def aStarToNearestScaredGhost():
             if len(state.getGhostStates()) == 0:
                 return False
+
+            spawn = [(11, 5), (10, 5), (10, 6), (9, 6), (9, 5), (8, 5)]
 
             goal_state = None
 
             distance = 1000000000
             for ghost in state.getGhostStates():
                 pos = fixedGhostPos(ghost)
+
+                if pos in spawn or state.getWalls()[int(pos[0])][int(pos[1])]:
+                    continue  # ignore ghost spawn and walls
                 manhattan = util.manhattanDistance(pos, state.getPacmanPosition())
                 if manhattan > ghost.scaredTimer:
                     continue
@@ -256,7 +364,7 @@ class BTAgent(Agent):
                     goal_state = pos
 
             if goal_state is None:
-                goal_state = fixedGhostPos(random.choice(state.getGhostPositions()))
+                return False
 
             return AStarToGoal(goal_state)
 
@@ -298,9 +406,13 @@ class BTAgent(Agent):
         # ])
 
         ourTree = BTSelector([
-            BTDecorator(BTLeaf(AStarToNearestScaredGhost), checkForScaredGhosts),
-
-            BTLeaf(AStarToNearestCapsule)
+            BTLeaf(fleeFromNearbyGhosts),
+            BTSequence([
+                BTLeaf(checkForScaredGhosts),
+                BTLeaf(aStarToNearestScaredGhost)
+            ]),
+            BTLeaf(aStarToNearestCapsule),
+            BTLeaf(bfsToNearestPill)
         ])
 
         action = ourTree.evaluate()
