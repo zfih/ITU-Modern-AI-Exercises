@@ -46,6 +46,7 @@ import random
 import util
 import time
 import search
+import math
 
 
 class GoWestAgent(Agent):
@@ -114,13 +115,13 @@ def fixedGhostPos(ghost):
         return pos
 
     if dir == "North":
-        pos = (pos[0], pos[1]-0.5)
+        pos = (pos[0], pos[1] - 0.5)
     elif dir == "South":
-        pos = (pos[0], pos[1]+0.5)
+        pos = (pos[0], pos[1] + 0.5)
     elif dir == "West":
-        pos = (pos[0]+0.5, pos[1])
+        pos = (pos[0] + 0.5, pos[1])
     else:
-        pos = (pos[0]-0.5, pos[1])
+        pos = (pos[0] - 0.5, pos[1])
 
     return pos
 
@@ -170,6 +171,7 @@ def checkGhostsNearbyState(state):
 
     return False
 
+
 class BTAgent(Agent):
     def getAction(self, state):
         def fleeFromNearbyGhosts():
@@ -217,7 +219,6 @@ class BTAgent(Agent):
                                     continue
                                 roads.append(road)
 
-
             if ghostNearby:
                 random.shuffle(roads)
                 for road in roads:
@@ -225,7 +226,6 @@ class BTAgent(Agent):
                         return road[0]
 
             return False
-
 
         def checkGhostsNearby():
             return checkGhostsNearbyState(state)
@@ -421,6 +421,122 @@ class BTAgent(Agent):
             return 'Stop'
         else:
             return action
+
+
+class MCTSAgent(Agent):
+    def __init__(self):
+        self.explored = []  # Dictionary for storing the explored states
+        self.n = 20  # Depth of search
+        self.c = 1  # Exploration parameter
+        self.tree = []
+        self.turn = 0
+
+    def getAction(self, state):
+        """ DO MCTS"""
+
+        self.tree = []
+
+        self.turn += 1
+
+        #                       0     1      2        3        4        5           6
+        # root is id 0, node = [id ,state, parent, children, value, nr of visits, action]
+        root = [0, state, 0, [], 0.0, 0, 'Stop']
+        self.tree.append(root)
+
+        for i in range(self.n):
+            print "Turn:", self.turn, "depth:", i
+            node = self.selection(root)
+            delta = self.simulation(node)
+            self.backPropagate(node, delta)
+        return self.bestResult(root)
+
+    def selection(self, node):  # TreePolicy in pseudocode from slides
+        state = copy.deepcopy(node[1])
+        tmp_node = node
+        while not state.isWin() or not state.isLose():
+            if len(state.getLegalActions())-1 > len(tmp_node[3]):
+                return self.expansion(tmp_node)
+            else:
+                tmp_node = self.bestChild(tmp_node)
+                state = tmp_node[1]
+        return tmp_node
+
+    def expansion(self, node):
+        actions = ['Stop']
+        for i in range(len(node[3])):
+            childNode = self.tree[node[3][i]]
+            actions.append(childNode[6])
+
+        untried_actions = []
+
+        for act in node[1].getLegalActions():
+            if act not in actions:
+                untried_actions.append(act)
+
+        act = random.choice(untried_actions)
+        id = len(self.tree)
+
+        child = [id, node[1].generatePacmanSuccessor(act), node[0], [], 0.0, 0, act]
+
+        self.tree.append(child)
+        self.tree[node[0]][3].append(id)
+
+        return child
+
+    def bestChild(self, node, Cp=None):
+        if Cp is None:
+            Cp = 1 / math.sqrt(2)  # Kocsis & Szepesvari
+
+        highestUCT = -1000000
+        child = 0
+
+        if len(node[3]) is 0:
+            return node
+
+        for i in range(len(node[3])):
+            childNode = self.tree[node[3][i]]
+            sum = 0
+
+            if len(childNode[3]) == 0:
+                Xj = childNode[4]
+            else:
+                for j in range(len(childNode[3])):
+                    sum += self.tree[childNode[3][j]][4]
+                Xj = sum/len(childNode[3])
+
+            div = 2. * math.log(len(self.tree)) / childNode[5]
+            expl = math.sqrt(div)
+
+            UCT = Xj + 2.0 * Cp * expl
+
+            if UCT > highestUCT:
+                highestUCT = UCT
+                child = i
+
+        return self.tree[node[3][child]]
+
+    def simulation(self, node):  # DefaultPolicy
+        state = copy.deepcopy(node[1])
+        while not state.isWin() and not state.isLose():
+            act = random.choice(state.getLegalActions())
+            state = copy.deepcopy(state.generatePacmanSuccessor(act))
+        return state.getScore()
+
+    def backPropagate(self, node, delta):
+        tmp_node = node
+        while tmp_node is not None:
+            tmp_node[5] += 1
+            tmp_node[4] += delta
+            self.tree[tmp_node[0]] = tmp_node
+
+            if tmp_node[0] is 0:
+                break
+
+            tmp_node = self.tree[tmp_node[2]]
+
+
+    def bestResult(self, node):
+        return self.bestChild(node)[6]
 
 
 class GAAgent(Agent):

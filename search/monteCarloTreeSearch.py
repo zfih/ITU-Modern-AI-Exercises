@@ -46,7 +46,7 @@ class MCTSagent(Agent):
             """ Determines whether a state has been explored before.
                 Returns True if the state has been explored, false otherwise
             """
-            return self.explored.__contains__(state)
+            return state in self.explored
 
         def best_UCT(state):
             """ Given a state, return the best action according to the UCT criterion."""
