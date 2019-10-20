@@ -386,12 +386,12 @@ class BTAgent(Agent):
 
         ourTree3 = BTSelector([
             BTLeaf(fleeFromNearbyGhosts),
-            BTLeaf(randomAction),
-        ]),
+            BTLeaf(randomAction)
+        ])
 
         ourTree4 = BTLeaf(randomAction)
 
-        action = ourTree1.evaluate()
+        action = ourTree3.evaluate()
 
         if not action:  # error handling basicly
             return 'Stop'
