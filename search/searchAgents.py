@@ -358,18 +358,20 @@ class BTAgent(Agent):
         def randomAction():
             return random.choice(state.getLegalActions())
 
+        ourTree1 = BTSelector([
+            BTSequence([
+                BTLeaf(checkGhostsNearby),
+                BTLeaf(fleeFromNearbyGhosts),
+            ]),
+            BTSequence([
+                BTLeaf(checkForScaredGhosts),
+                BTLeaf(aStarToNearestScaredGhost)
+            ]),
+            BTLeaf(aStarToNearestCapsule),
+            BTLeaf(bfsToNearestPill)
+        ])
 
-        # ourTree = BTSelector([
-        #     BTLeaf(fleeFromNearbyGhosts),
-        #     BTSequence([
-        #         BTLeaf(checkForScaredGhosts),
-        #         BTLeaf(aStarToNearestScaredGhost)
-        #     ]),
-        #     BTLeaf(aStarToNearestCapsule),
-        #     BTLeaf(bfsToNearestPill)
-        # ])
-
-        ourTree = BTSelector([
+        ourTree2 = BTSelector([
             BTSequence([
                 BTLeaf(checkGhostsNearby),
                 BTLeaf(aStarToNearestCapsule),
@@ -382,9 +384,14 @@ class BTAgent(Agent):
             BTLeaf(bfsToNearestPill)
         ])
 
-        # ourTree = BTLeaf(randomAction)
+        ourTree3 = BTSelector([
+            BTLeaf(fleeFromNearbyGhosts),
+            BTLeaf(randomAction),
+        ]),
 
-        action = ourTree.evaluate()
+        ourTree4 = BTLeaf(randomAction)
+
+        action = ourTree1.evaluate()
 
         if not action:  # error handling basicly
             return 'Stop'
@@ -401,8 +408,6 @@ class MCTSAgent(Agent):
         self.turn = 0
 
     def getAction(self, state):
-        """ DO MCTS"""
-
         self.tree = []
 
         self.turn += 1
@@ -412,7 +417,11 @@ class MCTSAgent(Agent):
         root = [0, state, 0, [], 0.0, 0, 'Stop']
         self.tree.append(root)
 
-        for i in range(self.n):
+        start_time = time.time()
+        i = 0
+
+        while time.time() - start_time < 60.0:
+            i += 1
             print "Turn:", self.turn, "depth:", i
             node = self.selection(root)
             delta = self.simulation(node)
@@ -502,7 +511,6 @@ class MCTSAgent(Agent):
                 break
 
             tmp_node = self.tree[tmp_node[2]]
-
 
     def bestResult(self, node):
         return self.bestChild(node)[6]
