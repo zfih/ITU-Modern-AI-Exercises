@@ -401,9 +401,9 @@ class BTAgent(Agent):
 
 class MCTSAgent(Agent):
     def __init__(self):
-        self.explored = []  # Dictionary for storing the explored states
-        self.n = 10  # Depth of search
-        self.c = 1  # Exploration parameter
+        self.n = 30  # Depth of search
+        self.max_time = 60.0 # how many seconds will we max use for a search
+        self.Cp = 1
         self.tree = []
         self.turn = 0
 
@@ -417,10 +417,10 @@ class MCTSAgent(Agent):
         root = [0, state, 0, [], 0.0, 0, 'Stop']
         self.tree.append(root)
 
-        start_time = time.time()
+        self.start_time = time.time()
         i = 0
 
-        while time.time() - start_time < 60.0:
+        while time.time() - self.start_time < self.max_time and i < self.n:
             i += 1
             print "Turn:", self.turn, "depth:", i
             node = self.selection(root)
@@ -429,13 +429,18 @@ class MCTSAgent(Agent):
         return self.bestResult(root)
 
     def selection(self, node):  # TreePolicy in pseudocode from slides
-        state = copy.deepcopy(node[1])
+        state = node[1]
         tmp_node = node
         while not state.isWin() or not state.isLose():
+            if time.time() - self.start_time > self.max_time + 10.0:  # if simulation is 10 seconds over time ->
+                break                                                 # Stop it.
             if len(state.getLegalActions())-1 > len(tmp_node[3]):
                 return self.expansion(tmp_node)
             else:
-                tmp_node = self.bestChild(tmp_node)
+                bestChild = self.bestChild(tmp_node)
+                if bestChild[0] is tmp_node[0]:
+                    return self.expansion(tmp_node)
+                tmp_node = bestChild
                 state = tmp_node[1]
         return tmp_node
 
@@ -450,6 +455,9 @@ class MCTSAgent(Agent):
         for act in node[1].getLegalActions():
             if act not in actions:
                 untried_actions.append(act)
+
+        if len(untried_actions) is 0:
+            return node
 
         act = random.choice(untried_actions)
         id = len(self.tree)
@@ -482,7 +490,7 @@ class MCTSAgent(Agent):
                     sum += self.tree[childNode[3][j]][4]
                 Xj = sum/len(childNode[3])
 
-            div = 2. * math.log(len(self.tree)) / childNode[5]
+            div = 2.0 * math.log(len(self.tree)) / childNode[5]
             expl = math.sqrt(div)
 
             UCT = Xj + 2.0 * Cp * expl
@@ -496,8 +504,10 @@ class MCTSAgent(Agent):
     def simulation(self, node):  # DefaultPolicy
         state = copy.deepcopy(node[1])
         while not state.isWin() and not state.isLose():
+            if time.time() - self.start_time > self.max_time + 10.0:  # if simulation is 10 seconds over time ->
+                break                                                 # Stop it.
             act = random.choice(state.getLegalActions())
-            state = copy.deepcopy(state.generatePacmanSuccessor(act))
+            state = state.generatePacmanSuccessor(act)
         return state.getScore()
 
     def backPropagate(self, node, delta):
