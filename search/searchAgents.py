@@ -144,19 +144,8 @@ def checkGhostsNearbyState(state):
                 possibleStates.append(tmp_state2)
 
         for check_state in possibleStates:
-            pacmanPos = check_state.getPacmanPosition()
-            ghosts = check_state.getGhostStates()
-
-            for ghost in ghosts:
-                ghostPos = ghost.getPosition()
-                if ghost.scaredTimer < 3 and pacmanPos == ghostPos:
-                    return True
-
-            inner_possibleStates = []
-
             for inner_act in check_state.getLegalActions():
                 next_next_state = check_state.generatePacmanSuccessor(inner_act)
-
                 for ghostAct in next_next_state.getLegalActions(1):
                     for ghost2Act in next_next_state.getLegalActions(2):
                         tmp_state1 = next_next_state.generateSuccessor(1, ghostAct)
@@ -166,8 +155,6 @@ def checkGhostsNearbyState(state):
                         tmp_state2 = tmp_state1.generateSuccessor(2, ghost2Act)
                         if tmp_state2.isLose():
                             return True
-
-                        inner_possibleStates.append(tmp_state2)
 
     return False
 
@@ -368,52 +355,34 @@ class BTAgent(Agent):
 
             return AStarToGoal(goal_state)
 
-        # ourTree = BTSelector([
-        #     BTDecorator(BTLeaf(AStarToNearestCapsule), checkForScaredGhosts),
-        #     BTSequence([
-        #         BTLeaf(checkGhost, 'West'),  # check for nearby ghosts
-        #         BTLeaf(goDirection, 'West')  # flee
-        #     ]),
-        #     BTSequence([
-        #         BTLeaf(checkGhost, 'West'),  # any capsules left?
-        #         BTLeaf(AStarToCapsules)  # AStar to nearest
-        #     ]),
-        #     BTLeaf(AStarToCapsules) # BFS to nearest pill
-        # ])
+        def randomAction():
+            return random.choice(state.getLegalActions())
+
 
         # ourTree = BTSelector([
+        #     BTLeaf(fleeFromNearbyGhosts),
         #     BTSequence([
-        #         BTLeaf(checkDirection, 'East'),
-        #         BTLeaf(checkGhost, 'East'),
-        #         BTLeaf(goDirection, 'West')
+        #         BTLeaf(checkForScaredGhosts),
+        #         BTLeaf(aStarToNearestScaredGhost)
         #     ]),
-        #     BTSequence([
-        #         BTLeaf(checkDirection, 'West'),
-        #         BTLeaf(checkGhost, 'West'),
-        #         BTLeaf(goDirection, 'East')
-        #     ]),
-        #     BTSequence([
-        #         BTLeaf(checkDirection, 'North'),
-        #         BTLeaf(checkGhost, 'North'),
-        #         BTLeaf(goDirection, 'South')
-        #     ]),
-        #     BTSequence([
-        #         BTLeaf(checkDirection, 'South'),
-        #         BTLeaf(checkGhost, 'South'),
-        #         BTLeaf(goDirection, 'North')
-        #     ]),
-        #     BTLeaf(goRandomDirection)
+        #     BTLeaf(aStarToNearestCapsule),
+        #     BTLeaf(bfsToNearestPill)
         # ])
 
         ourTree = BTSelector([
+            BTSequence([
+                BTLeaf(checkGhostsNearby),
+                BTLeaf(aStarToNearestCapsule),
+            ]),
             BTLeaf(fleeFromNearbyGhosts),
             BTSequence([
                 BTLeaf(checkForScaredGhosts),
                 BTLeaf(aStarToNearestScaredGhost)
             ]),
-            BTLeaf(aStarToNearestCapsule),
             BTLeaf(bfsToNearestPill)
         ])
+
+        # ourTree = BTLeaf(randomAction)
 
         action = ourTree.evaluate()
 
@@ -426,7 +395,7 @@ class BTAgent(Agent):
 class MCTSAgent(Agent):
     def __init__(self):
         self.explored = []  # Dictionary for storing the explored states
-        self.n = 20  # Depth of search
+        self.n = 10  # Depth of search
         self.c = 1  # Exploration parameter
         self.tree = []
         self.turn = 0
