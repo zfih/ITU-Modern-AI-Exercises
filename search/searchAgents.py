@@ -391,7 +391,7 @@ class BTAgent(Agent):
 
         ourTree4 = BTLeaf(randomAction)
 
-        action = ourTree3.evaluate()
+        action = ourTree2.evaluate()
 
         if not action:  # error handling basicly
             return 'Stop'
@@ -401,7 +401,7 @@ class BTAgent(Agent):
 
 class MCTSAgent(Agent):
     def __init__(self):
-        self.n = 30  # Depth of search
+        self.n = 50  # Depth of search
         self.max_time = 60.0 # how many seconds will we max use for a search
         self.Cp = 1
         self.tree = []
