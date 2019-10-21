@@ -232,9 +232,6 @@ class BTAgent(Agent):
                 current_state = states[current_pos]
                 explored.append(current_pos)
 
-                if current_state.getFood()[current_pos[0]][current_pos[1]]:
-                    return roads[current_pos][0]
-
                 for act in current_state.getLegalActions():
                     next_state = current_state.generatePacmanSuccessor(act)
                     next_pos = next_state.getPacmanPosition()
@@ -390,8 +387,9 @@ class BTAgent(Agent):
         ])
 
         ourTree4 = BTLeaf(randomAction)
+        ourTree5 = BTLeaf(bfsToNearestPill)
 
-        action = ourTree2.evaluate()
+        action = ourTree5.evaluate()
 
         if not action:  # error handling basicly
             return 'Stop'
@@ -401,7 +399,7 @@ class BTAgent(Agent):
 
 class MCTSAgent(Agent):
     def __init__(self):
-        self.n = 50  # Depth of search
+        self.n = 20  # Depth of search
         self.max_time = 60.0 # how many seconds will we max use for a search
         self.Cp = 1
         self.tree = []

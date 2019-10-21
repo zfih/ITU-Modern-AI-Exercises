@@ -173,8 +173,6 @@ def aStarSearch(problem, heuristic=nullHeuristic):
     came_from[state] = (None, 'Stop')
     cost_so_far[state] = 0
 
-    states = {}
-    states[state] = (state, 'None', 0)
 
     while not frontier.isEmpty():
         current_state = frontier.pop()
@@ -191,7 +189,6 @@ def aStarSearch(problem, heuristic=nullHeuristic):
             return road
 
         for next_state in problem.getSuccessors(current_state):
-            states[next_state[0]] = next_state
             new_cost = cost_so_far[current_state] + next_state[2]
             if next_state[0] not in cost_so_far or new_cost < cost_so_far[next_state[0]]:
                 cost_so_far[next_state[0]] = new_cost
