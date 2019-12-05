@@ -397,131 +397,189 @@ class BTAgent(Agent):
             return action
 
 
+# TODO: WHY YOU NO WORK?
+
 class MCTSAgent(Agent):
     def __init__(self):
-        self.n = 20  # Depth of search
-        self.max_time = 60.0 # how many seconds will we max use for a search
-        self.Cp = 1
-        self.tree = []
-        self.turn = 0
+        self.n = 30  # Depth of search
+        self.max_time = 60.0  # how many seconds will we max use for a search
+        self.Cp = 1  # Cp from UCT
+        self.tree = []  # current tree, as a list of nodes
+        self.turn = 0  # turn number, used for printing
+        self.start_time = time.time()  # set start time for timing purposes
 
     def getAction(self, state):
+        """
+        Run MCTS on the given state and return the next action to take
+        """
         self.tree = []
 
         self.turn += 1
 
         #                       0     1      2        3        4        5           6
         # root is id 0, node = [id ,state, parent, children, value, nr of visits, action]
-        root = [0, state, 0, [], 0.0, 0, 'Stop']
-        self.tree.append(root)
+        root = [0, state, 0, [], 0.0, 0, 'Stop']  # setup root node
+        self.tree.append(root)  # add root node to tree
 
-        self.start_time = time.time()
+        self.start_time = time.time()  # reset start time
         i = 0
 
+        # run as long as we are in computational budget (runtime under a minute and max depth of self.n)
         while time.time() - self.start_time < self.max_time and i < self.n:
             i += 1
             print "Turn:", self.turn, "depth:", i
-            node = self.selection(root)
-            delta = self.simulation(node)
-            self.backPropagate(node, delta)
-        return self.bestResult(root)
 
-    def selection(self, node):  # TreePolicy in pseudocode from slides
+            node = self.selection(root)  # run selection phase
+            delta = self.simulation(node)  # run simulation phase
+            self.backPropagate(node, delta)  # run backpropagation phase
+        return self.bestResult(root)  # return the best result we found while running
+
+    def selection(self, node):  # TreePolicy in pseudocode from Browne. et al.
+        """
+        If the node given is not fully expanded we expand it and return the child
+        otherwise we select the best child and return that.
+        """
+        # get state from given node
         state = node[1]
+        # setup tmp_node
         tmp_node = node
         while not state.isWin() or not state.isLose():
             if time.time() - self.start_time > self.max_time + 10.0:  # if simulation is 10 seconds over time ->
-                break                                                 # Stop it.
-            if len(state.getLegalActions())-1 > len(tmp_node[3]):
-                return self.expansion(tmp_node)
+                break  # Stop it.
+            if len(state.getLegalActions()) - 1 > len(tmp_node[3]):  # if legal actions minus 'Stop' is greater than
+                                                                     # number of children then we are not fully expanded
+                return self.expansion(tmp_node)                      # therefore return expansion of tmp_node
             else:
-                bestChild = self.bestChild(tmp_node)
-                if bestChild[0] is tmp_node[0]:
-                    return self.expansion(tmp_node)
-                tmp_node = bestChild
-                state = tmp_node[1]
+                bestChild = self.bestChild(tmp_node)                 # otherwise get the best child and check if
+                if bestChild[0] is tmp_node[0]:                      # best child is the same as tmp_node (if tmp_node has no children)
+                    return self.expansion(tmp_node)                  # if so we do as before. This is to catch times when there are
+                                                                     # no legal actions and thereby no children
+                tmp_node = bestChild  # set tmp to bestChild
+                state = tmp_node[1]  # set state to tmps state and retry
         return tmp_node
 
-    def expansion(self, node):
-        actions = ['Stop']
+    def expansion(self, node):  # Expand in pseudocode from Browne. et al.
+        """
+        Expand the given node and return the child.
+        Expands in random untried direction.
+        """
+        actions = ['Stop']  # we don't want to stop
+        # for each child in the given node, get the action taken and append it to actions
         for i in range(len(node[3])):
             childNode = self.tree[node[3][i]]
             actions.append(childNode[6])
 
         untried_actions = []
 
+        # set up list of all legal actions that have yet to be tried
         for act in node[1].getLegalActions():
             if act not in actions:
                 untried_actions.append(act)
 
+        # if there are none left, we made a mistake and we return the current node
         if len(untried_actions) is 0:
             return node
 
+        # pick random untried action
         act = random.choice(untried_actions)
+
+        # get id for new node in tree
         id = len(self.tree)
 
+        # setup child node with id, new state generated from action, node as parent,
+        # empty children, value and nr of visits, and lastly the action to get there
         child = [id, node[1].generatePacmanSuccessor(act), node[0], [], 0.0, 0, act]
 
+        # add child to tree and update parent nodes children to include newly created child
         self.tree.append(child)
         self.tree[node[0]][3].append(id)
 
+        # then return child
         return child
 
     def bestChild(self, node, Cp=None):
+        """
+        Find best child of node using UCT [Browne, et al.]
+        """
+
+        # if no specific Cp is given, use the one from paper
         if Cp is None:
             Cp = 1 / math.sqrt(2)  # Kocsis & Szepesvari
 
         highestUCT = -1000000
         child = 0
 
+        # if there are no children, return the node
         if len(node[3]) is 0:
             return node
 
+        # for each child
         for i in range(len(node[3])):
+            # get the childnode from the tree using the index of the current nodes children
             childNode = self.tree[node[3][i]]
             sum = 0
 
+            # if the child has no children, the average value of the children is just its value
             if len(childNode[3]) == 0:
                 Xj = childNode[4]
-            else:
+            else:  # otherwise sum the value of each child of the childNode
                 for j in range(len(childNode[3])):
                     sum += self.tree[childNode[3][j]][4]
-                Xj = sum/len(childNode[3])
+                Xj = sum / len(childNode[3])  # and average over the number of children
 
-            div = 2.0 * math.log(len(self.tree)) / childNode[5]
-            expl = math.sqrt(div)
+            # exploration part, split up for debugging purposes (one math call pr line)
+            div = 2.0 * math.log(len(self.tree)) / childNode[5]  # calculate division from UCT
+            expl = math.sqrt(div)  # and put into sqrt
 
+            # put UCT together and calculate
             UCT = Xj + 2.0 * Cp * expl
 
+            # find the child with highest UCT
             if UCT > highestUCT:
                 highestUCT = UCT
                 child = i
 
+        # return best child found
         return self.tree[node[3][child]]
 
-    def simulation(self, node):  # DefaultPolicy
+    def simulation(self, node):  # DefaultPolicy in pseudocode from Browne. et al.
+        # get a copy of the state from the node
         state = copy.deepcopy(node[1])
+
+        # while the state is not terminal we keep simulating moves
         while not state.isWin() and not state.isLose():
             if time.time() - self.start_time > self.max_time + 10.0:  # if simulation is 10 seconds over time ->
-                break                                                 # Stop it.
+                break  # Stop it.
+            # pick random action
             act = random.choice(state.getLegalActions())
+            # generate new state and go again
             state = state.generatePacmanSuccessor(act)
+        # return the score of the state. the higher the score, the better the run
         return state.getScore()
 
     def backPropagate(self, node, delta):
+        # set tmp_node to current node
         tmp_node = node
+        # while there are still nodes to propagate to, keep going
         while tmp_node is not None:
+            # update the visits in node
             tmp_node[5] += 1
+            # add the new delta to node
             tmp_node[4] += delta
+            # make sure node in tree is updated
             self.tree[tmp_node[0]] = tmp_node
 
+            # if we are at the root node, stop
             if tmp_node[0] is 0:
                 break
 
+            # otherwise set tmp_node to parent of current tmp_node
             tmp_node = self.tree[tmp_node[2]]
 
     def bestResult(self, node):
+        # return the action of the best child of the node given
         return self.bestChild(node)[6]
+
 
 
 class GAAgent(Agent):
