@@ -47,7 +47,7 @@ import util
 import time
 import search
 import math
-
+import gc
 
 class GoWestAgent(Agent):
     "An agent that goes West until it can't."
@@ -389,7 +389,7 @@ class BTAgent(Agent):
         ourTree4 = BTLeaf(randomAction)
         ourTree5 = BTLeaf(bfsToNearestPill)
 
-        action = ourTree5.evaluate()
+        action = ourTree4.evaluate()
 
         if not action:  # error handling basicly
             return 'Stop'
@@ -401,12 +401,13 @@ class BTAgent(Agent):
 
 class MCTSAgent(Agent):
     def __init__(self):
-        self.n = 30  # Depth of search
+        self.n = 15  # Depth of search
         self.max_time = 60.0  # how many seconds will we max use for a search
         self.Cp = 1  # Cp from UCT
         self.tree = []  # current tree, as a list of nodes
         self.turn = 0  # turn number, used for printing
         self.start_time = time.time()  # set start time for timing purposes
+        gc.enable()
 
     def getAction(self, state):
         """
@@ -417,7 +418,7 @@ class MCTSAgent(Agent):
         self.turn += 1
 
         #                       0     1      2        3        4        5           6
-        # root is id 0, node = [id ,state, parent, children, value, nr of visits, action]
+        # root is id 0, node = [id, state, parent, children, value, nr of visits, action]
         root = [0, state, 0, [], 0.0, 0, 'Stop']  # setup root node
         self.tree.append(root)  # add root node to tree
 
@@ -429,10 +430,27 @@ class MCTSAgent(Agent):
             i += 1
             print "Turn:", self.turn, "depth:", i
 
-            node = self.selection(root)  # run selection phase
-            delta = self.simulation(node)  # run simulation phase
-            self.backPropagate(node, delta)  # run backpropagation phase
-        return self.bestResult(root)  # return the best result we found while running
+            node = self.selection(self.tree[0])  # run selection phase
+            delta = self.simulation(self.tree[node[0]])  # run simulation phase
+            self.backPropagate(self.tree[node[0]], delta)  # run backpropagation phase
+
+        # self.printTree(0, 0)
+        gc.collect()  # try to fix memory issues
+        state.getAndResetExplored()
+        result = self.bestResult(self.tree[0])
+        print "Best choice:", result
+        return result  # return the best result we found while running
+
+    def printTree(self, i, c):
+        node = self.tree[i]
+        c += 1
+        space = " | " * c + " | -"
+        print space, node
+        for j in range(len(node[3])):
+            self.printTree(node[3][j], c)
+
+
+        return
 
     def selection(self, node):  # TreePolicy in pseudocode from Browne. et al.
         """
@@ -526,6 +544,7 @@ class MCTSAgent(Agent):
                 for j in range(len(childNode[3])):
                     sum += self.tree[childNode[3][j]][4]
                 Xj = sum / len(childNode[3])  # and average over the number of children
+                Xj = Xj + childNode[4]
 
             # exploration part, split up for debugging purposes (one math call pr line)
             div = 2.0 * math.log(len(self.tree)) / childNode[5]  # calculate division from UCT
@@ -544,12 +563,15 @@ class MCTSAgent(Agent):
 
     def simulation(self, node):  # DefaultPolicy in pseudocode from Browne. et al.
         # get a copy of the state from the node
-        state = copy.deepcopy(node[1])
-
+        state = node[1]
+        i = 0
         # while the state is not terminal we keep simulating moves
         while not state.isWin() and not state.isLose():
-            if time.time() - self.start_time > self.max_time + 10.0:  # if simulation is 10 seconds over time ->
+            if i > 10:  # if simulation is 10 seconds over time ->
                 break  # Stop it.
+
+            i += 1
+
             # pick random action
             act = random.choice(state.getLegalActions())
             # generate new state and go again
